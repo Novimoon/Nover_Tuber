@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoverTube - Gacha Video</title>
+    <link rel="icon" type="image/x-icon" href="https://i.postimg.cc/BQsvj5Lx/unnamed.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        ytbg: '#09090b',
+                        ytcard: '#18181b',
+                        ythover: '#27272a',
+                        accent: '#6366f1',
+                        accenthover: '#4f46e5',
+                        textmain: '#fafafa',
+                        textsub: '#a1a1aa',
+                        danger: '#ef4444'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        
+        body { 
+            background-color: #09090b; 
+            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+            color: #fafafa; 
+        }
+
+        .video-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .video-card:hover { transform: translateY(-4px); }
+        .glass {
+            background: rgba(24, 24, 27, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden selection:bg-accent selection:text-white">
+
+    <header class="flex items-center justify-between px-6 py-2 h-16 glass sticky top-0 z-40">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-2 cursor-pointer group" onclick="goHome()">
+                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-accent/20 group-hover:scale-110 transition-transform">
+                    <img src="https://i.postimg.cc/BQsvj5Lx/unnamed.jpg" alt="Logo" class="w-full h-full object-cover">
+                </div>
+                <div class="flex flex-col justify-center">
+                    <span class="text-xl font-bold tracking-tight hidden sm:block">Nover<span class="text-accent">Tube!</span></span>
+                    <span class="text-[8px] opacity-40 leading-none hidden sm:block">by @Novi._.moon0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-1 max-w-[600px] flex items-center mx-4">
+            <div class="flex w-full items-center bg-ytcard/50 border border-white/10 rounded-2xl overflow-hidden focus-within:border-accent/50 focus-within:ring-4 focus-within:ring-accent/10 transition-all">
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search content..." class="w-full bg-transparent text-textmain px-5 py-2.5 focus:outline-none placeholder-textsub/50">
+                <div class="pr-5 text-textsub"><i data-lucide="search" class="w-5 h-5"></i></div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Add Video button is hidden by default -->
+            <button id="addVideoBtn" onclick="openAddVideoModal()" class="hidden items-center gap-2 bg-accent hover:bg-accenthover text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-accent/20">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Add Video</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <main class="flex-1 overflow-y-auto" id="mainScrollArea">
+            <div class="p-8 max-w-[1800px] mx-auto">
+                <div id="videoGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
+                    <!-- Videos load here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Video Modal -->
+    <div id="addVideoModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center hidden">
+        <div class="bg-ytcard p-8 rounded-3xl w-full max-w-md border border-white/10 shadow-2xl scale-95 transition-transform" id="addVideoModalContent">
+            <h2 class="text-2xl font-bold mb-6 text-textmain">Add New Video</h2>
+            <form onsubmit="submitAddVideo(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-textsub uppercase tracking-[0.2em]">YouTube URL</label>
+                        <input type="url" id="ytUrl" placeholder="https://youtube.com/..." class="w-full bg-ytbg border border-white/10 rounded-xl px-4 py-3 mt-1 outline-none focus:border-accent text-textmain" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-bold text-textsub uppercase tracking-[0.2em]">Duration</label>
+                            <input type="text" id="videoDuration" placeholder="12:05" class="w-full bg-ytbg border border-white/10 rounded-xl px-4 py-3 mt-1 outline-none focus:border-accent text-textmain" required>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-textsub uppercase tracking-[0.2em]">Custom Title</label>
+                            <input type="text" id="customTitle" placeholder="Optional" class="w-full bg-ytbg border border-white/10 rounded-xl px-4 py-3 mt-1 outline-none focus:border-accent text-textmain">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 mt-8">
+                    <button type="button" onclick="closeModal('addVideoModal')" class="flex-1 py-3 rounded-xl hover:bg-white/5 transition-all">Cancel</button>
+                    <button type="submit" id="submitBtn" class="flex-1 bg-accent py-3 rounded-xl font-bold shadow-lg shadow-accent/20">Upload to Firebase</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Player Modal -->
+    <div id="playerModal" class="fixed inset-0 bg-black/95 z-[60] flex flex-col hidden">
+        <div class="p-6 flex justify-end">
+            <button onclick="closePlayer()" class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-danger transition-colors">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-4" id="playerContainer"></div>
+    </div>
+
+    <script>
+        // Replace with your actual Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvEhpPrHn4s4sh7d2IiDmGALemasrpeeM", 
+            authDomain: "novertube.firebaseapp.com",
+            projectId: "novertube",
+            storageBucket: "novertube.firebasestorage.app",
+            messagingSenderId: "889433888521",
+            appId: "1:889433888521:web:39bb8a30c124060674a5d8"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Check if user is in "Secret Admin Mode" via URL
+        const isAdmin = window.location.search.includes('admin');
+        let videos = [];
+
+        function init() {
+            if(isAdmin) {
+                document.getElementById('addVideoBtn').classList.remove('hidden');
+                document.getElementById('addVideoBtn').classList.add('flex');
+            }
+
+            // Sync with Firebase Firestore
+            db.collection("videos").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                videos = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
+                renderVideos();
+            });
+        }
+
+        function renderVideos(filter = '') {
+            const grid = document.getElementById('videoGrid');
+            grid.innerHTML = '';
+            const query = filter.toLowerCase();
+            const filtered = videos.filter(v => v.title.toLowerCase().includes(query) || v.channel.toLowerCase().includes(query));
+
+            filtered.forEach(video => {
+                const card = document.createElement('div');
+                card.className = 'video-card group relative';
+                card.innerHTML = `
+                    <div class="aspect-video rounded-[2rem] overflow-hidden bg-ytcard mb-4 cursor-pointer shadow-2xl relative" onclick="playVideo('${video.id}')">
+                        <img src="https://img.youtube.com/vi/${video.id}/maxresdefault.jpg" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://img.youtube.com/vi/${video.id}/hqdefault.jpg'">
+                        <div class="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
+                            ${video.duration}
+                        </div>
+                    </div>
+                    <div class="flex gap-4 px-2">
+                        <div class="flex-1 overflow-hidden">
+                            <h3 class="font-bold text-lg line-clamp-2 text-textmain group-hover:text-accent cursor-pointer transition-colors" onclick="playVideo('${video.id}')">${video.title}</h3>
+                            <p class="text-textsub text-sm mt-1 font-medium">${video.channel}</p>
+                        </div>
+                    </div>
+                    ${isAdmin ? `<button onclick="deleteVideo('${video.firebaseId}', event)" class="absolute top-4 right-4 bg-danger/90 p-2.5 rounded-2xl text-white shadow-xl hover:bg-danger transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : ''}
+                `;
+                grid.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        async function submitAddVideo(e) {
+            e.preventDefault();
+            const url = document.getElementById('ytUrl').value;
+            const duration = document.getElementById('videoDuration').value;
+            const customTitle = document.getElementById('customTitle').value;
+            const idMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|\/embed\/|\/v\/))([^?&"'>]+)/);
+            const videoId = idMatch ? idMatch[1] : null;
+
+            if (!videoId) return alert("Invalid YouTube URL");
+
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "Uploading...";
+
+            try {
+                const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                const data = await res.json();
+
+                await db.collection("videos").add({
+                    id: videoId,
+                    title: customTitle || data.title || "Untitled",
+                    channel: data.author_name || "Unknown Creator",
+                    duration: duration,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                closeModal('addVideoModal');
+            } catch (err) {
+                alert("Error connecting to Firebase");
+            } finally {
+                btn.innerText = "Upload to Firebase";
+            }
+        }
+
+        function deleteVideo(firebaseId, e) {
+            e.stopPropagation();
+            if(confirm("Permanently delete this video from Firebase?")) {
+                db.collection("videos").doc(firebaseId).delete();
+            }
+        }
+
+        function playVideo(id) {
+            const container = document.getElementById('playerContainer');
+            container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen class="max-w-6xl aspect-video w-full rounded-[2.5rem] shadow-2xl border border-white/10"></iframe>`;
+            openModal('playerModal');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openAddVideoModal() {
+            document.getElementById('ytUrl').value = '';
+            openModal('addVideoModal');
+        }
+
+        function closePlayer() { 
+            closeModal('playerModal'); 
+            document.getElementById('playerContainer').innerHTML = '';
+            document.body.style.overflow = '';
+        }
+
+        function handleSearch() { renderVideos(document.getElementById('searchInput').value); }
+        function goHome() { window.location.href = window.location.pathname; }
+
+        window.onload = init;
+        lucide.createIcons();
+    </script>
+</body>
+</html>
