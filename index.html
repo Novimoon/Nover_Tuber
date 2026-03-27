@@ -1,103 +1,190 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="ar" dir="ltr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NoverTube - Gacha Video</title>
     <link rel="icon" type="image/x-icon" href="https://i.postimg.cc/BQsvj5Lx/unnamed.jpg">
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        ytbg: '#09090b',
-                        ytcard: '#18181b',
-                        ythover: '#27272a',
-                        accent: '#6366f1',
-                        accenthover: '#4f46e5',
-                        textmain: '#fafafa',
-                        textsub: '#a1a1aa'
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
     <style>
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #09090b; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
-        
-        body { 
-            background-color: #09090b; 
-            background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-                              radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
-            color: #fafafa; 
+        :root {
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
         }
 
-        .video-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-        .video-card:hover { transform: translateY(-4px); }
-        .glass {
-            background: rgba(24, 24, 27, 0.8);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        body { 
+            background-color: #050507; 
+            color: #fafafa; 
+            font-family: 'Cairo', sans-serif;
+            overflow-x: hidden;
         }
+
+        /* Animated Background Glows */
+        .bg-glow {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: 
+                radial-gradient(circle at 0% 0%, var(--accent-glow) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(168, 85, 247, 0.1) 0%, transparent 40%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .glass { 
+            background: rgba(15, 15, 18, 0.7); 
+            backdrop-filter: blur(16px); 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+
+        /* Video Card Enhancements */
+        .video-card {
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .video-card:hover {
+            transform: translateY(-8px);
+        }
+
+        .thumb-container {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        .thumb-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 40%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .video-card:hover .thumb-container::after {
+            opacity: 1;
+        }
+
+        /* Play Button Overlay */
+        .play-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(99, 102, 241, 0.9);
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .video-card:hover .play-overlay {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+        /* Input animations */
+        input:focus {
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden selection:bg-accent selection:text-white">
+<body class="h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
 
-    <header class="flex items-center justify-between px-6 py-2 h-16 glass sticky top-0 z-40">
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2 cursor-pointer group" onclick="goHome()">
-                <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg shadow-accent/20 group-hover:scale-110 transition-transform">
-                    <img src="https://i.postimg.cc/BQsvj5Lx/unnamed.jpg" alt="Logo" class="w-full h-full object-cover">
-                </div>
-                <div class="flex flex-col justify-center">
-                    <span class="text-xl font-bold tracking-tight hidden sm:block">Nover<span class="text-accent">Tube!</span></span>
-                    <span class="text-[8px] opacity-40 leading-none hidden sm:block">by @Novi._.moon0</span>
-                </div>
+    <div class="bg-glow"></div>
+
+    <!-- Header -->
+    <header class="flex items-center justify-between px-8 py-4 h-20 glass sticky top-0 z-40">
+        <div class="flex items-center gap-4 cursor-pointer group" onclick="location.href=window.location.pathname">
+            <div class="relative">
+                <div class="absolute inset-0 bg-indigo-500 blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                <img src="https://i.postimg.cc/BQsvj5Lx/unnamed.jpg" class="w-11 h-11 rounded-xl relative border border-white/10 shadow-2xl">
+            </div>
+            <div class="flex flex-col">
+                <span class="text-2xl font-black tracking-tighter leading-none">Nover<span class="text-indigo-500">Tube!</span></span>
+                <span class="text-[9px] text-zinc-500 font-bold mt-1 uppercase tracking-[0.2em] opacity-80">By @Novi._.moon0</span>
             </div>
         </div>
         
-        <div class="flex-1 max-w-[600px] flex items-center mx-4">
-            <div class="flex w-full items-center bg-ytcard/50 border border-white/10 rounded-2xl overflow-hidden focus-within:border-accent/50 focus-within:ring-4 focus-within:ring-accent/10 transition-all">
-                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search videos..." class="w-full bg-transparent text-textmain px-5 py-2.5 focus:outline-none placeholder-textsub/50">
-                <div class="pr-5 text-textsub"><i data-lucide="search" class="w-5 h-5"></i></div>
+        <div class="flex-1 max-w-lg mx-12 hidden md:block">
+            <div class="relative group">
+                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-indigo-500 transition-colors"></i>
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search content..." class="w-full bg-zinc-900/40 border border-white/5 rounded-2xl pl-11 pr-5 py-2.5 focus:outline-none focus:border-indigo-500/50 text-sm transition-all backdrop-blur-md">
             </div>
         </div>
 
-        <div class="w-10 h-10"></div> <!-- Spacer for symmetry -->
+        <button id="adminBtn" onclick="openModal('addVideoModal')" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-2xl text-xs font-black shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-95 uppercase">
+            Add Video
+        </button>
     </header>
 
-    <div class="flex flex-1 overflow-hidden">
-        <main class="flex-1 overflow-y-auto" id="mainScrollArea">
-            <div class="p-8 max-w-[1800px] mx-auto">
-                <div id="videoGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-8">
-                    <!-- Skeleton loading or initial state -->
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto p-8">
+        <div id="videoGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 max-w-[1600px] mx-auto">
+            <!-- Videos load here -->
+        </div>
+    </main>
+
+    <!-- Modal: Add Video -->
+    <div id="addVideoModal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6 hidden backdrop-blur-md">
+        <div class="bg-zinc-900/90 border border-white/10 p-8 rounded-[2rem] w-full max-w-md shadow-2xl fade-in">
+            <h2 class="text-2xl font-black mb-6 text-indigo-400">Post Content</h2>
+            <div class="space-y-5">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-zinc-500 uppercase ml-1">YouTube URL</label>
+                    <input type="text" id="ytUrl" placeholder="Paste link here..." class="w-full bg-black/50 border border-white/5 rounded-xl p-4 outline-none focus:border-indigo-500 transition-all text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-zinc-500 uppercase ml-1">Duration</label>
+                        <input type="text" id="vDuration" placeholder="00:00" class="w-full bg-black/50 border border-white/5 rounded-xl p-4 outline-none focus:border-indigo-500 text-sm text-center">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-zinc-500 uppercase ml-1">Avatar Link</label>
+                        <input type="text" id="vAvatar" placeholder="Optional" class="w-full bg-black/50 border border-white/5 rounded-xl p-4 outline-none focus:border-indigo-500 text-sm">
+                    </div>
                 </div>
             </div>
-        </main>
+            <div class="flex gap-4 mt-8">
+                <button onclick="closeModal('addVideoModal')" class="flex-1 py-4 font-bold text-zinc-500 hover:text-white transition-colors">Cancel</button>
+                <button onclick="saveVideo()" id="saveBtn" class="flex-1 bg-indigo-600 rounded-xl font-black text-white hover:bg-indigo-500 transition-all">POST</button>
+            </div>
+        </div>
     </div>
 
-    <div id="playerModal" class="fixed inset-0 bg-black/95 z-[60] flex flex-col hidden">
+    <!-- Player Modal -->
+    <div id="playerModal" class="fixed inset-0 bg-black/98 z-[60] flex flex-col hidden backdrop-blur-xl">
         <div class="p-6 flex justify-end">
-            <button onclick="closePlayer()" class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors">
-                <i data-lucide="x"></i>
+            <button onclick="closePlayer()" class="bg-white/5 hover:bg-red-500/20 hover:text-red-500 text-zinc-400 w-12 h-12 rounded-full flex items-center justify-center transition-all border border-white/5">
+                <i data-lucide="x" class="w-6 h-6"></i>
             </button>
         </div>
-        <div class="flex-1 flex items-center justify-center p-4" id="playerContainer"></div>
+        <div class="flex-1 flex items-center justify-center p-4 sm:p-12" id="playerContainer"></div>
     </div>
 
     <script>
@@ -107,78 +194,94 @@
             projectId: "novertube",
             storageBucket: "novertube.firebasestorage.app",
             messagingSenderId: "889433888521",
-            appId: "1:889433888521:web:39bb8a30c124060674a5d8",
-            measurementId: "G-V4115Z3HP9"
+            appId: "1:889433888521:web:39bb8a30c124060674a5d8"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        let videos = [];
+
+        const isAdmin = new URLSearchParams(window.location.search).has('admin');
+        if (isAdmin) document.getElementById('adminBtn').classList.remove('hidden');
+
+        let allVideos = [];
 
         function init() {
-            // Listen for changes in the 'videos' collection
-            db.collection("videos").orderBy("createdAt", "desc").onSnapshot(snapshot => {
-                videos = snapshot.docs.map(doc => ({ firebaseId: doc.id, ...doc.data() }));
-                renderVideos();
+            db.collection("videos").orderBy("createdAt", "desc").onSnapshot(snap => {
+                allVideos = snap.docs.map(doc => ({ fId: doc.id, ...doc.data() }));
+                displayVideos(allVideos);
             });
         }
 
-        function renderVideos(filter = '') {
+        function displayVideos(list) {
             const grid = document.getElementById('videoGrid');
-            grid.innerHTML = '';
-            const query = filter.toLowerCase();
-            const filtered = videos.filter(v => 
-                v.title.toLowerCase().includes(query) || 
-                v.channel.toLowerCase().includes(query)
-            );
-
-            if (filtered.length === 0) {
-                grid.innerHTML = `<div class="col-span-full text-center py-20 text-textsub">No videos found.</div>`;
-            } else {
-                filtered.forEach(video => {
-                    const avatar = video.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(video.channel)}&background=random&color=fff`;
-                    const card = document.createElement('div');
-                    card.className = 'video-card group relative';
-                    card.innerHTML = `
-                        <div class="aspect-video rounded-[2rem] overflow-hidden bg-ytcard mb-4 cursor-pointer shadow-2xl relative" onclick="playVideo('${video.id}')">
-                            <img src="https://img.youtube.com/vi/${video.id}/maxresdefault.jpg" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" onerror="this.src='https://img.youtube.com/vi/${video.id}/hqdefault.jpg'">
-                            <div class="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-lg">
-                                ${video.duration || '0:00'}
-                            </div>
+            grid.innerHTML = list.map((v, index) => {
+                const avatar = v.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.channel)}&background=6366f1&color=fff`;
+                return `
+                <div class="video-card group fade-in" style="animation-delay: ${index * 0.05}s">
+                    <div class="thumb-container cursor-pointer" onclick="playVideo('${v.id}')">
+                        <img src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" class="w-full h-full object-cover aspect-video group-hover:scale-105 transition-transform duration-700">
+                        <div class="play-overlay"><i data-lucide="play" class="fill-white text-white w-6 h-6 ml-1"></i></div>
+                        <div class="absolute bottom-3 right-3 bg-black/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-black text-white border border-white/10">${v.duration}</div>
+                    </div>
+                    <div class="mt-5 flex gap-4 px-1">
+                        <img src="${avatar}" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/5 shadow-xl shrink-0">
+                        <div class="flex-1">
+                            <h3 class="font-bold text-sm leading-snug line-clamp-2 group-hover:text-indigo-400 transition-colors text-zinc-100">${v.title}</h3>
+                            <p class="text-zinc-500 text-[11px] font-bold mt-1 uppercase tracking-wider">${v.channel}</p>
                         </div>
-                        <div class="flex gap-4 px-2">
-                            <img src="${avatar}" class="w-12 h-12 rounded-2xl shadow-md object-cover bg-ytcard shrink-0">
-                            <div class="flex-1 overflow-hidden">
-                                <h3 class="font-bold text-lg line-clamp-2 text-textmain group-hover:text-accent cursor-pointer transition-colors" onclick="playVideo('${video.id}')">${video.title}</h3>
-                                <p class="text-textsub text-sm mt-1 font-medium">${video.channel}</p>
-                            </div>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                });
-            }
+                        ${isAdmin ? `<button onclick="deleteVideo('${v.fId}', event)" class="text-zinc-700 hover:text-red-500 transition-colors p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
             lucide.createIcons();
+        }
+
+        async function saveVideo() {
+            const url = document.getElementById('ytUrl').value;
+            const dur = document.getElementById('vDuration').value;
+            const avatar = document.getElementById('vAvatar').value;
+            const id = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|\/embed\/|\/v\/))([^?&"'>]+)/)?.[1];
+
+            if (!id || !dur) return alert("Missing Info");
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "WAIT..."; btn.disabled = true;
+            
+            try {
+                const res = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${id}`);
+                const data = await res.json();
+                await db.collection("videos").add({
+                    id, title: data.title || "Untitled", channel: data.author_name || "Creator",
+                    avatar: avatar || null, duration: dur, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                closeModal('addVideoModal');
+                document.getElementById('ytUrl').value = '';
+                document.getElementById('vDuration').value = '';
+                document.getElementById('vAvatar').value = '';
+            } catch (e) { alert("Error"); } finally { btn.innerText = "POST"; btn.disabled = false; }
+        }
+
+        function deleteVideo(docId, e) {
+            e.stopPropagation();
+            if(confirm("Remove video?")) db.collection("videos").doc(docId).delete();
         }
 
         function playVideo(id) {
-            const container = document.getElementById('playerContainer');
-            container.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen class="max-w-6xl aspect-video w-full rounded-[2.5rem] shadow-2xl border border-white/10"></iframe>`;
-            document.getElementById('playerModal').classList.remove('hidden');
+            document.getElementById('playerContainer').innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${id}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen class="max-w-6xl aspect-video w-full rounded-[2rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] border border-white/5"></iframe>`;
+            openModal('playerModal');
             document.body.style.overflow = 'hidden';
-            lucide.createIcons();
         }
 
-        function closePlayer() { 
-            document.getElementById('playerModal').classList.add('hidden');
-            document.getElementById('playerContainer').innerHTML = ''; 
-            document.body.style.overflow = '';
+        function handleSearch() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allVideos.filter(v => v.title.toLowerCase().includes(q) || v.channel.toLowerCase().includes(q));
+            displayVideos(filtered);
         }
 
-        function handleSearch() { renderVideos(document.getElementById('searchInput').value); }
-        function goHome() { document.getElementById('searchInput').value = ''; renderVideos(); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        function closePlayer() { closeModal('playerModal'); document.getElementById('playerContainer').innerHTML = ''; document.body.style.overflow = ''; }
 
         window.onload = init;
-        lucide.createIcons();
     </script>
 </body>
 </html>
